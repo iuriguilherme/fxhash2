@@ -1,5 +1,5 @@
 {
-  "name": "collatz-experiment",
+  "name": "collatz-bezier-rainbow",
   "version": "1.0.0",
   "description": "a generative token for fxhash.xyz",
   "main": "index.js",
