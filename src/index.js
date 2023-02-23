@@ -1,12 +1,12 @@
 /**!
- * @file fxhash boilerplate webpack  
- * @version 1.1.0.0  
+ * @file Collatz Bezier Rainbow
+ * @version 1.0.0  
  * @copyright Iuri Guilherme 2023  
  * @license GNU AGPLv3  
  * @author Iuri Guilherme <https://iuri.neocities.org/>  
- * @author Laurent Houdard <https://github.com/laurent-h>  
- * @author ciphrd <https://github.com/ciphrd>  
- * @author fxhash <https://github.com/fxhash>  
+ * @description This is Collatz Bezier Rainbow made with p5js for 
+ *      fxhash.xyz genarative tokens. Source code available at Github: 
+ *      https://github.com/iuriguilherme/fxhash1  
  * 
  * This program is free software: you can redistribute it and/or modify it 
  * under the terms of the GNU Affero General Public License as published by the 
@@ -32,9 +32,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const properAlphabet = 
     "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 const variantFactor = 3.904e-87; // This number is magic
+const luminance = 60;
 const fxhashDecimal = base58toDecimal(fxhashTrunc);
-const featureVariant = fxHashToVariant(fxhashDecimal, 1);
-//~ const featureVariant = -1;
+const featureVariant = fxHashToVariant(fxhashDecimal, 60);
+//~ const featureVariant = 60;
 let size, scale, ratio, reWidth, reHeight;
 let width = window.innerWidth;
 let height = window.innerHeight;
@@ -50,17 +51,51 @@ let sketch = function(p5) {
     scale = width / reWidth;
     p5.scale(scale);
     p5.frameRate(60);
-    p5.noLoop();
+    //~ p5.noLoop();
   };
-  p5.draw = function() {
+  p5.draw = async function() {
     p5.background(255);
-    console.log({
-      "fxhash": fxhashTrunc,
-      "fxhashDecimal": fxhashDecimal,
-      "featureVariant": featureVariant
-    )
-    await sleep(1);
+    //~ console.log({
+      //~ "fxhash": fxhashTrunc,
+      //~ "fxhashDecimal": fxhashDecimal,
+      //~ "featureVariant": featureVariant
+    //~ })
+    p5.stroke(0);
+    p5.noFill();
+    for (let k = 0; k <= featureVariant; k++) {  
+      for (let j = 0; j <= k; j++) {
+        p5.translate(j / k, j / k);
+        let x = math.round(fxrand() * 10 ** j);
+        let y = math.round(fxrand() * 10 ** j);
+        let start_x = x;
+        let start_y = y;
+        p5.beginShape();
+        p5.vertex(x, y);
+        let i = 0;
+        while (x > 4 || y > 4) {
+          //~ console.log({"i": i, "j": j, "k": k, "x": x, "y": y});
+          p5.stroke(
+            math.round((i * 360) / math.max(i, 597)),
+            math.round((j * 100) / k),
+            luminance
+          );
+          p5.bezierVertex(
+            x * math.phi,
+            y * math.phi,
+            y * math.phi,
+            x * math.phi,
+            x,
+            y,
+          );
+          x = collatzConjecture(x);
+          y = collatzConjecture(y);
+          i++;
+        }
+        p5.endShape();
+      }
+    }
     fxpreview();
+    await sleep(math.abs(featureVariant * 1000 / 60 - 1000));
   };
   p5.windowResized = function() {
     checkRatio();
@@ -114,6 +149,18 @@ function fxHashToVariant(decimalHash, maxVariants = 0, inverse = false) {
     return variant;
 }
 
+/**
+ * @description Collatz Conjecture Function
+ * @param {int} number: A natural number to test for eveness / oddness
+ * @returns {int} next number in Collatz Conjecture
+ */
+function collatzConjecture(number = 0) {
+  if (number % 2) {
+    return (3 * number) + 1;
+  }
+  return number / 2;
+}
+
 window.$fxhashFeatures = {
-  "fx(variant)": featureVariant
+  "Bezier Curves": featureVariant
 }
