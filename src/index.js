@@ -6,7 +6,7 @@
  * @author Iuri Guilherme <https://iuri.neocities.org/>  
  * @description This is Collatz Bezier Rainbow made with p5js for 
  *      fxhash.xyz genarative tokens. Source code available at Github: 
- *      https://github.com/iuriguilherme/fxhash1  
+ *      https://github.com/iuriguilherme/fxhash2  
  * 
  * This program is free software: you can redistribute it and/or modify it 
  * under the terms of the GNU Affero General Public License as published by the 
