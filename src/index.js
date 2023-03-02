@@ -1,6 +1,6 @@
 /**!
  * @file Collatz Bezier Rainbow
- * @version 1.0.0  
+ * @version 2.0.0  
  * @copyright Iuri Guilherme 2023  
  * @license GNU AGPLv3  
  * @author Iuri Guilherme <https://iuri.neocities.org/>  
@@ -27,18 +27,27 @@ import p5 from 'p5';
 import { create, all } from 'mathjs';
 const math = create(all, {})
 
+const version = "2.0.0";
+const cc = (n = 1) => n != 1 && (n % 2 && (3 * n) + 1 || n / 2) || n;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 // https://github.com/fxhash/fxhash-webpack-boilerplate/issues/20
 const properAlphabet = 
-    "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+    "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 const variantFactor = 3.904e-87; // This number is magic
-const luminance = 60;
 const fxhashDecimal = base58toDecimal(fxhashTrunc);
-const featureVariant = fxHashToVariant(fxhashDecimal, 60);
+const limit = 60;
+const featureVariant = math.max(1, fxHashToVariant(fxhashDecimal, limit));
 //~ const featureVariant = 60;
-let size, scale, ratio, reWidth, reHeight;
+let size, scale, ratio, reWidth, reHeight, canvas;
 let width = window.innerWidth;
 let height = window.innerHeight;
+let curves = featureVariant;
+let ceiling = limit;
+let curvePower = 2;
+let delay = 1;
+const gst = () => math.abs(((curves * (10 ** delay)) / limit) - (10 ** delay))
+  + 1;
+let sleepTime = gst();
 
 let sketch = function(p5) {
   p5.setup = function() {
@@ -47,75 +56,153 @@ let sketch = function(p5) {
     ratio = width / height;
     checkRatio();
     size = p5.min(reWidth, reHeight);
-    p5.createCanvas(size, size);
+    canvas = p5.createCanvas(size, size);
     scale = width / reWidth;
     p5.scale(scale);
     p5.frameRate(60);
-    //~ p5.noLoop();
+    p5.noLoop();
   };
   p5.draw = async function() {
     p5.background(255);
-    //~ console.log({
-      //~ "fxhash": fxhashTrunc,
-      //~ "fxhashDecimal": fxhashDecimal,
-      //~ "featureVariant": featureVariant
-    //~ })
+    console.log(`
+fx(hash): ${fxhashTrunc}
+fx(hash) base 10: ${fxhashDecimal}
+Feature: ${featureVariant}
+Bezier curves: ${curves}
+Collatz number multiplier: ${curvePower}
+Animation delay: ${sleepTime}
+Longest Collatz sequence: ${ceiling}
+`)
     p5.stroke(0);
     p5.noFill();
-    for (let k = 0; k <= featureVariant; k++) {  
+    for (let k = 0; k <= curves; k++) {  
       for (let j = 0; j <= k; j++) {
         p5.translate(j / k, j / k);
-        let x = math.round(fxrand() * 10 ** j);
-        let y = math.round(fxrand() * 10 ** j);
-        let start_x = x;
-        let start_y = y;
+        let x = collatzConjecture(math.round(fxrand() * curvePower ** j));
+        let y = collatzConjecture(math.round(fxrand() * curvePower ** j));
+        let start_x = x[0];
+        let start_y = y[0];
         p5.beginShape();
-        p5.vertex(x, y);
-        let i = 0;
-        while (x > 4 || y > 4) {
-          //~ console.log({"i": i, "j": j, "k": k, "x": x, "y": y});
+        p5.vertex(start_x, start_y);
+        for (let i = 0; i < x.length || i < y.length; i++) {
           p5.stroke(
-            math.round((i * 360) / math.max(i, 597)),
+            math.round((i * 360) / math.max(i, ceiling)),
             math.round((j * 100) / k),
-            luminance
+            limit
           );
           p5.bezierVertex(
-            x * math.phi,
-            y * math.phi,
-            y * math.phi,
-            x * math.phi,
-            x,
-            y,
+            x[math.min(i, x.length - 1)] * math.phi,
+            y[math.min(i, y.length - 1)] * math.phi,
+            y[math.min(i, y.length - 1)] * math.phi,
+            x[math.min(i, x.length - 1)] * math.phi,
+            x[math.min(i, x.length - 1)],
+            y[math.min(i, y.length - 1)],
           );
-          x = collatzConjecture(x);
-          y = collatzConjecture(y);
-          i++;
+          ceiling = math.max(i, ceiling);
         }
         p5.endShape();
       }
+      await sleep(sleepTime);
     }
     fxpreview();
-    await sleep(math.abs(featureVariant * 1000 / 60 - 1000));
+    await sleep(sleepTime);
   };
   p5.windowResized = function() {
     checkRatio();
     size = p5.min(reWidth, reHeight);
     p5.resizeCanvas(size, size);
   }
+  p5.keyTyped = function() {
+    switch (p5.key) {
+      case 'w':
+        sleepTime = gst();
+        p5.redraw();
+        break;
+      case 's':
+        p5.saveCanvas(canvas,
+          `collatz_bezier_rainbow_v${version}_${curves}.png`);
+        break;
+      case 'x':
+        delay = 0;
+        sleepTime = 0;
+        console.log(`animation delay deactivated`);
+        break;
+      case 'r':
+        ceiling = 0;
+        console.log(`longest Collatz sequence reset`);
+        break;
+      case 'q':
+        curves = math.max(1, curves - 1);
+        console.log(`curves decreased to ${curves}`);
+        p5.redraw();
+        break;
+      case 'e':
+        curves = math.min(limit, curves + 1);
+        console.log(`curves increased to ${curves}`);
+        p5.redraw();
+        break;
+      case 'a':
+        delay = math.max(1, delay - 1);
+        sleepTime = gst();
+        console.log(`animation delay: ${sleepTime}ms`);
+        break;
+      case 'd':
+        delay = math.min(limit, delay + 1);
+        sleepTime = gst();
+        console.log(`animation delay: ${sleepTime}ms`);
+        break;
+      case 'z':
+        curvePower = math.max(1, curvePower - 1);
+        console.log(`Collatz random number multiplier: ${curvePower}`);
+        break;
+      case 'c':
+        curvePower = math.min(limit, curvePower + 1);
+        console.log(`Collatz random number multiplier: ${curvePower}`);
+        p5.redraw();
+        break;
+      default:
+        console.log(`key ${p5.key} was pressed`);
+    }
+  }
 }
 let myp5 = new p5(sketch, window.document.body);
 
-function checkRatio() {
-    let reRatio = window.innerWidth / window.innerHeight;
-    if (reRatio > ratio) {
-        scale = window.innerHeight / height;
-        reWidth = (window.innerHeight / height) * width;
-        reHeight = window.innerHeigth;
-    } else {
-        scale = window.innerWidth / width;
-        reWidth = window.innerWidth;
-        reHeight = (window.innerWidth / width) * height;
+/**
+ * @description Collatz Conjecture Function
+ * @param {int} number: A natural number to calculate the Collatz sequence
+ * @returns {Array} the Collatz sequence for the given number
+ */
+function collatzConjecture(number = 0) {
+  try {
+    collatz_index[number][0];
+    return collatz_index[number];
+  } catch {
+    let c = number;
+    let a = [c];
+    while (c > 1) {
+      c = cc(c);
+      a.push(c);
     }
+    collatz_index[number] = a;
+    return collatz_index[number];
+  }
+}
+
+
+/**
+ * @description Resize screen helper function
+ */
+function checkRatio() {
+  let reRatio = window.innerWidth / window.innerHeight;
+  if (reRatio > ratio) {
+    scale = window.innerHeight / height;
+    reWidth = (window.innerHeight / height) * width;
+    reHeight = window.innerHeigth;
+  } else {
+    scale = window.innerWidth / width;
+    reWidth = window.innerWidth;
+    reHeight = (window.innerWidth / width) * height;
+  }
 }
 
 /**
@@ -123,14 +210,14 @@ function checkRatio() {
  * @returns {float} decimal representation of the number in base58 
  */
 function base58toDecimal(hash = fxhashTrunc) {
-    let decimal = 0;
-    let iterArray = Array.from(hash).reverse();
-    while (iterArray.length > 0) {
-        decimal += properAlphabet.indexOf(iterArray.slice(-1)) * (math.pow(58,
-            iterArray.length - 1));
-        iterArray = iterArray.slice(0, -1);
-    }
-    return decimal;
+  let decimal = 0;
+  let iterArray = Array.from(hash).reverse();
+  while (iterArray.length > 0) {
+    decimal += properAlphabet.indexOf(iterArray.slice(-1)) * (math.pow(58,
+      iterArray.length - 1));
+    iterArray = iterArray.slice(0, -1);
+  }
+  return decimal;
 }
 
 /**
@@ -142,23 +229,11 @@ function base58toDecimal(hash = fxhashTrunc) {
  *      defined by maxVariants * variantFactor
  */
 function fxHashToVariant(decimalHash, maxVariants = 0, inverse = false) {
-    let variant = math.round(decimalHash * maxVariants * variantFactor);
-    if (inverse) {
-        return math.abs(maxVariants - variant);
-    }
-    return variant;
-}
-
-/**
- * @description Collatz Conjecture Function
- * @param {int} number: A natural number to test for eveness / oddness
- * @returns {int} next number in Collatz Conjecture
- */
-function collatzConjecture(number = 0) {
-  if (number % 2) {
-    return (3 * number) + 1;
+  let variant = math.round(decimalHash * maxVariants * variantFactor);
+  if (inverse) {
+    return math.abs(maxVariants - variant);
   }
-  return number / 2;
+  return variant;
 }
 
 window.$fxhashFeatures = {
