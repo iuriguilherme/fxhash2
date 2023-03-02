@@ -1,6 +1,6 @@
 {
   "name": "collatz-bezier-rainbow",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "a generative token for fxhash.xyz",
   "main": "index.js",
   "author": "iuriguilherme",

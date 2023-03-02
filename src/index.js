@@ -1,6 +1,6 @@
 /**!
  * @file Collatz Bezier Rainbow
- * @version 2.0.0  
+ * @version 2.0.1  
  * @copyright Iuri Guilherme 2023  
  * @license GNU AGPLv3  
  * @author Iuri Guilherme <https://iuri.neocities.org/>  
@@ -27,7 +27,7 @@ import p5 from 'p5';
 import { create, all } from 'mathjs';
 const math = create(all, {})
 
-const version = "2.0.0";
+const version = "2.0.1";
 const cc = (n = 1) => n != 1 && (n % 2 && (3 * n) + 1 || n / 2) || n;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 // https://github.com/fxhash/fxhash-webpack-boilerplate/issues/20
@@ -42,12 +42,9 @@ let size, scale, ratio, reWidth, reHeight, canvas;
 let width = window.innerWidth;
 let height = window.innerHeight;
 let curves = featureVariant;
-let ceiling = limit;
+let ceiling = 0;
 let curvePower = 2;
-let delay = 1;
-const gst = () => math.abs(((curves * (10 ** delay)) / limit) - (10 ** delay))
-  + 1;
-let sleepTime = gst();
+let delay = 600;
 
 let sketch = function(p5) {
   p5.setup = function() {
@@ -70,7 +67,7 @@ fx(hash) base 10: ${fxhashDecimal}
 Feature: ${featureVariant}
 Bezier curves: ${curves}
 Collatz number multiplier: ${curvePower}
-Animation delay: ${sleepTime}
+Animation delay: ${delay}
 Longest Collatz sequence: ${ceiling}
 `)
     p5.stroke(0);
@@ -102,10 +99,10 @@ Longest Collatz sequence: ${ceiling}
         }
         p5.endShape();
       }
-      await sleep(sleepTime);
+      await sleep(delay);
     }
     fxpreview();
-    await sleep(sleepTime);
+    await sleep(delay);
   };
   p5.windowResized = function() {
     checkRatio();
@@ -114,57 +111,53 @@ Longest Collatz sequence: ${ceiling}
   }
   p5.keyTyped = function() {
     switch (p5.key) {
-      case 'w':
-        sleepTime = gst();
+      case 'r':
         p5.redraw();
+        break;
+      case 'q':
+        curvePower = math.max(1, curvePower - 1);
+        console.log(
+          `Collatz random number multiplier decreased to ${curvePower}`);
+        break;
+      case 'w':
+        ceiling = 0;
+        console.log(`longest Collatz sequence reset`);
+        break;
+      case 'e':
+        curvePower = math.min(limit, curvePower + 1);
+        console.log(
+          `Collatz random number multiplier increased to ${curvePower}`);
+        break;
+      case 'a':
+        curves = math.max(1, curves - 1);
+        console.log(`curves decreased to ${curves}`);
         break;
       case 's':
         p5.saveCanvas(canvas,
           `collatz_bezier_rainbow_v${version}_${curves}.png`);
         break;
-      case 'x':
-        delay = 0;
-        sleepTime = 0;
-        console.log(`animation delay deactivated`);
-        break;
-      case 'r':
-        ceiling = 0;
-        console.log(`longest Collatz sequence reset`);
-        break;
-      case 'q':
-        curves = math.max(1, curves - 1);
-        console.log(`curves decreased to ${curves}`);
-        p5.redraw();
-        break;
-      case 'e':
+      case 'd':
         curves = math.min(limit, curves + 1);
         console.log(`curves increased to ${curves}`);
-        p5.redraw();
-        break;
-      case 'a':
-        delay = math.max(1, delay - 1);
-        sleepTime = gst();
-        console.log(`animation delay: ${sleepTime}ms`);
-        break;
-      case 'd':
-        delay = math.min(limit, delay + 1);
-        sleepTime = gst();
-        console.log(`animation delay: ${sleepTime}ms`);
         break;
       case 'z':
-        curvePower = math.max(1, curvePower - 1);
-        console.log(`Collatz random number multiplier: ${curvePower}`);
+        delay = math.max(100, delay - 100);
+        console.log(`animation delay decreased to ${delay}ms`);
+        break;
+      case 'x':
+        delay = 0;
+        console.log(`animation delay deactivated`);
         break;
       case 'c':
-        curvePower = math.min(limit, curvePower + 1);
-        console.log(`Collatz random number multiplier: ${curvePower}`);
-        p5.redraw();
+        delay = math.min(limit * 1e2, delay + 100);
+        console.log(`animation delay increased to ${delay}ms`);
         break;
       default:
-        console.log(`key ${p5.key} was pressed`);
+        console.log(`key ${p5.key} was pressed, which doesn't do anything`);
     }
   }
 }
+
 let myp5 = new p5(sketch, window.document.body);
 
 /**
@@ -187,7 +180,6 @@ function collatzConjecture(number = 0) {
     return collatz_index[number];
   }
 }
-
 
 /**
  * @description Resize screen helper function
