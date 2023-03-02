@@ -122,7 +122,7 @@ Longest Collatz sequence: ${ceiling}
         break;
       case 'w':
         ceiling = 0;
-        console.log(`longest Collatz sequence reset`);
+        console.log(`longest Collatz sequence reset, it is now zero`);
         break;
       case 'e':
         power = math.min(limit, power + 1);
@@ -147,7 +147,7 @@ Longest Collatz sequence: ${ceiling}
         break;
       case 'x':
         delay = 0;
-        console.log(`animation delay deactivated`);
+        console.log(`animation delay deactivated, it is now 0ms`);
         break;
       case 'c':
         delay = math.min(limit * 1e2, delay + 100);
