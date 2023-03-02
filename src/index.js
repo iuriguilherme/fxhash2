@@ -1,6 +1,6 @@
 /**!
  * @file Collatz Bezier Rainbow
- * @version 2.0.1  
+ * @version 2.1.0  
  * @copyright Iuri Guilherme 2023  
  * @license GNU AGPLv3  
  * @author Iuri Guilherme <https://iuri.neocities.org/>  
@@ -27,7 +27,7 @@ import p5 from 'p5';
 import { create, all } from 'mathjs';
 const math = create(all, {})
 
-const version = "2.0.1";
+const version = "2.1.0";
 const cc = (n = 1) => n != 1 && (n % 2 && (3 * n) + 1 || n / 2) || n;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 // https://github.com/fxhash/fxhash-webpack-boilerplate/issues/20
@@ -36,19 +36,20 @@ const properAlphabet =
 const variantFactor = 3.904e-87; // This number is magic
 const fxhashDecimal = base58toDecimal(fxhashTrunc);
 const limit = 60;
-const featureVariant = math.max(1, fxHashToVariant(fxhashDecimal, limit));
-//~ const featureVariant = 60;
+const featureVariant = math.max(2, fxHashToVariant(fxhashDecimal, limit));
+//~ const featureVariant = limit;
 let size, scale, ratio, reWidth, reHeight, canvas;
 let width = window.innerWidth;
 let height = window.innerHeight;
 let curves = featureVariant;
-let ceiling = 0;
-let curvePower = 2;
+let ceiling = curves;
+let power = 60 - curves;
 let delay = 600;
 
 let sketch = function(p5) {
   p5.setup = function() {
     p5.randomSeed(fxrand() * 1e8);
+    p5.noiseSeed(fxrand() * 1e8);
     p5.colorMode(p5.HSL);
     ratio = width / height;
     checkRatio();
@@ -66,7 +67,7 @@ fx(hash): ${fxhashTrunc}
 fx(hash) base 10: ${fxhashDecimal}
 Feature: ${featureVariant}
 Bezier curves: ${curves}
-Collatz number multiplier: ${curvePower}
+Collatz number multiplier: ${power}
 Animation delay: ${delay}
 Longest Collatz sequence: ${ceiling}
 `)
@@ -75,8 +76,8 @@ Longest Collatz sequence: ${ceiling}
     for (let k = 0; k <= curves; k++) {  
       for (let j = 0; j <= k; j++) {
         p5.translate(j / k, j / k);
-        let x = collatzConjecture(math.round(fxrand() * curvePower ** j));
-        let y = collatzConjecture(math.round(fxrand() * curvePower ** j));
+        let x = collatzConjecture(math.round(fxrand() * power ** j));
+        let y = collatzConjecture(math.round(fxrand() * power ** j));
         let start_x = x[0];
         let start_y = y[0];
         p5.beginShape();
@@ -115,18 +116,18 @@ Longest Collatz sequence: ${ceiling}
         p5.redraw();
         break;
       case 'q':
-        curvePower = math.max(1, curvePower - 1);
+        power = math.max(1, power - 1);
         console.log(
-          `Collatz random number multiplier decreased to ${curvePower}`);
+          `Collatz random number multiplier decreased to ${power}`);
         break;
       case 'w':
         ceiling = 0;
         console.log(`longest Collatz sequence reset`);
         break;
       case 'e':
-        curvePower = math.min(limit, curvePower + 1);
+        power = math.min(limit, power + 1);
         console.log(
-          `Collatz random number multiplier increased to ${curvePower}`);
+          `Collatz random number multiplier increased to ${power}`);
         break;
       case 'a':
         curves = math.max(1, curves - 1);

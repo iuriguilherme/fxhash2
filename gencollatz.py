@@ -11,7 +11,7 @@ import sys
 out_file: str = os.path.join("public", "collatz.js")
 
 try:
-    limit: str = sys.argv[1]
+    limit: str = int(sys.argv[1])
 except:
     limit: str = 3600
     print(f"Usage: `{sys.argv[0]} [LIMIT]`. Using {limit} as default.")
