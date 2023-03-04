@@ -1,6 +1,6 @@
 /**!
  * @file Collatz Bezier Rainbow
- * @version 3.0.0  
+ * @version 3.0.1  
  * @copyright Iuri Guilherme 2023  
  * @license GNU AGPLv3  
  * @author Iuri Guilherme <https://iuri.neocities.org/>  
@@ -23,11 +23,13 @@
  * 
  */
 
-import p5 from 'p5';
-import { create, all } from 'mathjs';
-const math = create(all, {})
+const seed = fxrand() * 1e8;
 
-const version = "3.0.0";
+import p5 from "p5";
+import { create, all } from "mathjs";
+const math = create(all, {"randomSeed": seed})
+
+const version = "3.0.1";
 const cc = (n = 1) => n != 1 && (n % 2 && (3 * n) + 1 || n / 2) || n;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 // https://github.com/fxhash/fxhash-webpack-boilerplate/issues/20
@@ -35,21 +37,23 @@ const properAlphabet =
     "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 const variantFactor = 3.904e-87; // This number is magic
 const fxhashDecimal = base58toDecimal(fxhashTrunc);
-const limit = 60;
+const limit = 90;
 const featureVariant = math.max(2, fxHashToVariant(fxhashDecimal, limit));
 //~ const featureVariant = limit;
-let x, y, size, scale, ratio, reWidth, reHeight, canvas;
+let x, y, size, scale, ratio, reWidth, reHeight, canvas, xw, yw;
 let width = window.innerWidth;
 let height = window.innerHeight;
-let curves = limit / 2;
+let curves = limit;
+//~ let curves = limit / 2;
+//~ let curves = 2;
 let ceiling = curves;
 let power = 1;
 let delay = 600;
 
 let sketch = function(p5) {
   p5.setup = function() {
-    p5.randomSeed(fxrand() * 1e8);
-    p5.noiseSeed(fxrand() * 1e8);
+    p5.randomSeed(seed);
+    p5.noiseSeed(seed);
     p5.colorMode(p5.HSL);
     ratio = width / height;
     checkRatio();
@@ -74,53 +78,64 @@ Longest Collatz sequence: ${ceiling}
     p5.stroke(0);
     p5.noFill();
     for (let k = 0; k <= curves; k++) {  
+      p5.translate(k, k);
       for (let j = 0; j <= k; j++) {
-        p5.translate(j / k, j / k);
+        //~ p5.translate(j / k, j / k);
         x = collatzConjecture(math.round(fxrand() * power ** j));
         y = collatzConjecture(math.round(fxrand() * power ** j));
-        let start_x = x[0];
-        let start_y = y[0];
-        p5.translate(1, 1);
-        p5.beginShape();
-        p5.vertex(0, 0);
-        for (let i = 0; i < x.length || i < y.length; i++) {
-          p5.stroke(
-            math.round((i * 360) / math.max(i, ceiling)),
-            math.round((j * 100) / k),
-            limit
-          );
-          p5.bezierVertex(
-            x[math.min(i, y.length - 1)] * math.phi,
-            y[math.min(i, y.length - 1)] * math.phi,
-            x[math.min(i, y.length - 1)],
-            y[math.min(i, x.length - 1)],
-            i,
-            i,
-          );
-          ceiling = math.max(i, ceiling);
+        xw = [];
+        yw = [];
+        for (let w = 0; w < x.length; w++) {
+          xw.push(p5.random());
         }
-        p5.endShape();
+        for (let w = 0; w < y.length; w++) {
+          yw.push(p5.random());
+        }
         p5.beginShape();
-        p5.vertex(p5.width, p5.height);
+        p5.vertex(x[0], y[0]);
         for (let i = 0; i < x.length || i < y.length; i++) {
           p5.stroke(
-            math.round((i * 360) / math.max(i, ceiling)),
-            math.abs(100 - math.round((j * 100) / k)),
+            math.randomInt(360),
+            math.round((i * 100) / math.max(i, ceiling)),
             //~ math.round((j * 100) / k),
-            limit
+            60
           );
           p5.bezierVertex(
-            p5.width - x[math.min(i, x.length - 1)] * (math.pi / 2),
-            p5.height - y[math.min(i, y.length - 1)] * math.phi,
-            p5.width - x[math.min(i, y.length - 1)],
-            p5.height - y[math.min(i, x.length - 1)],
-            p5.width - i,
-            p5.height - i,
+            x[math.min(i, y.length - 1)] * (math.pi / 4),
+            y[math.min(i, y.length - 1)] * (math.pi - 3),
+            x[math.min(i, y.length - 1)] * (math.phi / 2),
+            y[math.min(i, x.length - 1)] * (math.phi - 1),
+            math.pickRandom(x, xw),
+            math.pickRandom(y, yw)
           );
           ceiling = math.max(i, ceiling);
         }
         p5.endShape();
+        //~ p5.beginShape();
+        //~ p5.vertex(p5.width, p5.height);
+        //~ for (let i = 0; i < x.length || i < y.length; i++) {
+          //~ p5.stroke(
+            //~ math.randomInt(360),
+            //~ math.round((i * 360) / math.max(i, ceiling)),
+            //~ math.abs(100 - math.round((j * 100) / k)),
+            //~ math.round((j * 100) / k),
+            //~ limit
+          //~ );
+          //~ p5.bezierVertex(
+            //~ p5.width - x[math.min(i, x.length - 1)] * (math.pi / 2),
+            //~ p5.height - y[math.min(i, y.length - 1)] * math.phi,
+            //~ p5.width - math.pickRandom(x, xw),
+            //~ p5.height - math.pickRandom(y, yw),
+            //~ p5.width - x[math.min(i, y.length - 1)],
+            //~ p5.height - y[math.min(i, x.length - 1)],
+          //~ );
+          //~ ceiling = math.max(i, ceiling);
+        //~ }
+        //~ p5.endShape();
       }
+      checkRatio();
+      scale = p5.width / reWidth;
+      p5.scale(scale);
       await sleep(delay);
     }
     fxpreview();
@@ -128,7 +143,7 @@ Longest Collatz sequence: ${ceiling}
     if (fxrand() > 0.666666) {
       ceiling = 0;
     }
-    await sleep(1);
+    await sleep(delay);
   };
   p5.windowResized = function() {
     checkRatio();
