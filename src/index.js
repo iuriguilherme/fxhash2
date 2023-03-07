@@ -1,6 +1,6 @@
 /**!
  * @file Collatz Bezier Rainbow
- * @version 3.0.1  
+ * @version 3.1.0    
  * @copyright Iuri Guilherme 2023  
  * @license GNU AGPLv3  
  * @author Iuri Guilherme <https://iuri.neocities.org/>  
@@ -29,7 +29,7 @@ import p5 from "p5";
 import { create, all } from "mathjs";
 const math = create(all, {"randomSeed": seed})
 
-const version = "3.0.1";
+const version = "3.1.0";
 const cc = (n = 1) => n != 1 && (n % 2 && (3 * n) + 1 || n / 2) || n;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 // https://github.com/fxhash/fxhash-webpack-boilerplate/issues/20
@@ -37,10 +37,12 @@ const properAlphabet =
     "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 const variantFactor = 3.904e-87; // This number is magic
 const fxhashDecimal = base58toDecimal(fxhashTrunc);
-const limit = 90;
+//~ const limit = 90;
+const limit = 30;
 const featureVariant = math.max(2, fxHashToVariant(fxhashDecimal, limit));
 //~ const featureVariant = limit;
-let x, y, size, scale, ratio, reWidth, reHeight, canvas, xw, yw;
+let x, y, size, scale, ratio, reWidth, reHeight, reRatio, canvas, xWeigths,
+  yWeigths, buffer, scaleFactor, sizeX, sizeY;
 let width = window.innerWidth;
 let height = window.innerHeight;
 let curves = limit;
@@ -49,23 +51,45 @@ let curves = limit;
 let ceiling = curves;
 let power = 1;
 let delay = 600;
+/* Effective size of the buffer */
+const BUFF_SIZE = 1080;
+/* Change the ASPECT RATIO of your sketch with these */
+const BUFF_WID_MOD = 1;
+const BUFF_HEI_MOD = 1;
+const BUFF_WID = BUFF_SIZE * BUFF_WID_MOD;
+const BUFF_HEI = BUFF_SIZE * BUFF_HEI_MOD;
+const CANVAS_PIXEL_DENSITY = 1;
+const BUFF_PIXEL_DENSITY = 4;
 
 let sketch = function(p5) {
+  /**
+   * @description Resize screen helper function
+   */
+  function checkRatio() {
+    reRatio = p5.windowWidth / p5.windowHeight;
+    if (reRatio > ratio) {
+      scale = p5.windowHeight / p5.height;
+      reWidth = (p5.windowHeight / p5.height) * p5.width;
+      reHeight = p5.windowHeight;
+    } else {
+      scale = p5.windowWidth / p5.width;
+      reWidth = p5.windowWidth;
+      reHeight = (p5.windowWidth / p5.width) * p5.height;
+    }
+  }
   p5.setup = function() {
     p5.randomSeed(seed);
     p5.noiseSeed(seed);
     p5.colorMode(p5.HSL);
-    ratio = width / height;
-    checkRatio();
-    size = p5.min(reWidth, reHeight);
-    canvas = p5.createCanvas(size, size);
-    scale = width / reWidth;
-    p5.scale(scale);
+    size = p5.min(p5.windowWidth, p5.windowHeight);
+    sizeX = size * BUFF_WID_MOD;
+    sizeY = size * BUFF_HEI_MOD;
+    canvas = p5.createCanvas(sizeX, sizeY);
+    p5.pixelDensity(CANVAS_PIXEL_DENSITY);
     p5.frameRate(60);
     p5.noLoop();
   };
   p5.draw = async function() {
-    p5.background(255);
     console.log(`
 fx(hash): ${fxhashTrunc}
 fx(hash) base 10: ${fxhashDecimal}
@@ -75,80 +99,69 @@ Collatz number multiplier: ${power}
 Animation delay: ${delay}
 Longest Collatz sequence: ${ceiling}
 `)
-    p5.stroke(0);
-    p5.noFill();
-    for (let k = 0; k <= curves; k++) {  
-      p5.translate(k, k);
+    buffer = p5.createGraphics(BUFF_WID, BUFF_HEI);
+    buffer.colorMode(p5.HSL);
+    buffer.pixelDensity(BUFF_PIXEL_DENSITY);
+    p5.scaleFactor = BUFF_SIZE / size;
+    buffer.scaleFactor = BUFF_SIZE / size;
+    p5.backgroundColor = 255;
+    buffer.background(255);
+    buffer.stroke(0);
+    buffer.noFill();
+    for (let k = 0; k <= curves; k++) {
+      buffer.translate(k, k);
       for (let j = 0; j <= k; j++) {
-        //~ p5.translate(j / k, j / k);
         x = collatzConjecture(math.round(fxrand() * power ** j));
         y = collatzConjecture(math.round(fxrand() * power ** j));
-        xw = [];
-        yw = [];
+        xWeigths = [];
+        yWeigths = [];
         for (let w = 0; w < x.length; w++) {
-          xw.push(p5.random());
+          xWeigths.push(p5.random());
         }
         for (let w = 0; w < y.length; w++) {
-          yw.push(p5.random());
+          yWeigths.push(p5.random());
         }
-        p5.beginShape();
-        p5.vertex(x[0], y[0]);
+        buffer.beginShape();
+        buffer.vertex(x[0], y[0]);
         for (let i = 0; i < x.length || i < y.length; i++) {
-          p5.stroke(
-            math.randomInt(360),
-            math.round((i * 100) / math.max(i, ceiling)),
-            //~ math.round((j * 100) / k),
+          buffer.stroke(
+            //~ math.randomInt(360),
+            math.round((i * 360) / math.max(i, ceiling)),
+            //~ math.round((i * 100) / math.max(i, ceiling)),
+            math.round((j * 100) / k),
             60
           );
-          p5.bezierVertex(
+          buffer.bezierVertex(
             x[math.min(i, y.length - 1)] * (math.pi / 4),
             y[math.min(i, y.length - 1)] * (math.pi - 3),
             x[math.min(i, y.length - 1)] * (math.phi / 2),
             y[math.min(i, x.length - 1)] * (math.phi - 1),
-            math.pickRandom(x, xw),
-            math.pickRandom(y, yw)
+            math.pickRandom(x, xWeigths),
+            math.pickRandom(y, yWeigths)
           );
           ceiling = math.max(i, ceiling);
+          //~ await sleep(1);
         }
-        p5.endShape();
-        //~ p5.beginShape();
-        //~ p5.vertex(p5.width, p5.height);
-        //~ for (let i = 0; i < x.length || i < y.length; i++) {
-          //~ p5.stroke(
-            //~ math.randomInt(360),
-            //~ math.round((i * 360) / math.max(i, ceiling)),
-            //~ math.abs(100 - math.round((j * 100) / k)),
-            //~ math.round((j * 100) / k),
-            //~ limit
-          //~ );
-          //~ p5.bezierVertex(
-            //~ p5.width - x[math.min(i, x.length - 1)] * (math.pi / 2),
-            //~ p5.height - y[math.min(i, y.length - 1)] * math.phi,
-            //~ p5.width - math.pickRandom(x, xw),
-            //~ p5.height - math.pickRandom(y, yw),
-            //~ p5.width - x[math.min(i, y.length - 1)],
-            //~ p5.height - y[math.min(i, x.length - 1)],
-          //~ );
-          //~ ceiling = math.max(i, ceiling);
-        //~ }
-        //~ p5.endShape();
+        buffer.endShape();
+        p5.image(buffer, 0, 0, sizeX, sizeY);
+        //~ await sleep(1);
       }
-      checkRatio();
-      scale = p5.width / reWidth;
-      p5.scale(scale);
       await sleep(delay);
     }
     fxpreview();
     power = math.min(power + 1, limit);
-    if (fxrand() > 0.666666) {
-      ceiling = 0;
-    }
+    //~ if (fxrand() > 0.666666) {
+      //~ ceiling = 0;
+    //~ }
     await sleep(delay);
   };
   p5.windowResized = function() {
-    checkRatio();
-    size = p5.min(reWidth, reHeight);
-    p5.resizeCanvas(size, size);
+    size = p5.min(p5.windowWidth, p5.windowHeight);
+    sizeX = size * BUFF_WID_MOD;
+    sizeY = size * BUFF_HEI_MOD;
+    p5.scaleFactor = BUFF_SIZE / size;
+    p5.resizeCanvas(sizeX, sizeY);
+    p5.image(buffer, 0, 0, sizeX, sizeY);
   }
   p5.keyTyped = function() {
     switch (p5.key) {
@@ -222,22 +235,6 @@ function collatzConjecture(number = 0) {
     }
     collatz_index[number] = a;
     return collatz_index[number];
-  }
-}
-
-/**
- * @description Resize screen helper function
- */
-function checkRatio() {
-  let reRatio = window.innerWidth / window.innerHeight;
-  if (reRatio > ratio) {
-    scale = window.innerHeight / height;
-    reWidth = (window.innerHeight / height) * width;
-    reHeight = window.innerHeigth;
-  } else {
-    scale = window.innerWidth / width;
-    reWidth = window.innerWidth;
-    reHeight = (window.innerWidth / width) * height;
   }
 }
 
